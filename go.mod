@@ -32,7 +32,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.3
 	github.com/google/btree v1.0.0
-	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1
+	github.com/google/pprof v0.0.0-20211122183932-1daafda22083
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/handlers v1.5.1 // indirect
 	github.com/gorilla/mux v1.8.0
@@ -46,11 +46,11 @@ require (
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/pingcap/badger v1.5.1-0.20210831093107-2f6cb8008145
-	github.com/pingcap/check v0.0.0-20200212061837-5e12011dc712
+	github.com/pingcap/check v0.0.0-20211026125417-57bd13f7b5f0
 	github.com/pingcap/errors v0.11.5-0.20211224045212-9687c2b0f87c
 	github.com/pingcap/failpoint v0.0.0-20210316064728-7acb0f0a3dfd
 	github.com/pingcap/fn v0.0.0-20200306044125-d5540d389059
-	github.com/pingcap/kvproto v0.0.0-20211207042851-78a55fb8e69c
+	github.com/pingcap/kvproto v0.0.0-20211213085605-3329b3c5404c
 	github.com/pingcap/log v0.0.0-20210906054005-afc726e70354
 	github.com/pingcap/sysutil v0.0.0-20211208032423-041a72e5860d
 	github.com/pingcap/tidb-tools v5.2.2-0.20211019062242-37a8bef2fa17+incompatible
@@ -60,7 +60,9 @@ require (
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.9.1
 	github.com/shirou/gopsutil v3.21.3+incompatible
+	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/httpgzip v0.0.0-20190720172056-320755c1c1b0
+	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/soheilhy/cmux v0.1.4
 	github.com/spf13/cobra v1.0.0
@@ -104,3 +106,5 @@ replace github.com/pingcap/tidb/parser => ./parser
 
 // fix potential security issue(CVE-2020-26160) introduced by indirect dependency.
 replace github.com/dgrijalva/jwt-go => github.com/form3tech-oss/jwt-go v3.2.6-0.20210809144907-32ab6a8243d7+incompatible
+
+replace github.com/tikv/pd => github.com/dbsid/pd v1.1.0-beta.0.20220208090541-ed08d3e2c8a0
