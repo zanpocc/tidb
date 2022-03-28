@@ -349,6 +349,7 @@ func (s *Server) reportConfig() {
 }
 
 // Run runs the server.
+// 服务器接受连接处理
 func (s *Server) Run() error {
 	metrics.ServerEventCounter.WithLabelValues(metrics.EventStart).Inc()
 	s.reportConfig()
@@ -374,6 +375,7 @@ func (s *Server) startNetworkListener(listener net.Listener, isUnixSocket bool, 
 		errChan <- nil
 		return
 	}
+	// 循环接受等待连接到来
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -445,6 +447,7 @@ func (s *Server) startNetworkListener(listener net.Listener, isUnixSocket bool, 
 			continue
 		}
 
+		// 为新到来的连接开启一个goroutine处理
 		go s.onConn(clientConn)
 	}
 }
@@ -494,6 +497,7 @@ func (s *Server) Close() {
 // onConn runs in its own goroutine, handles queries from this connection.
 func (s *Server) onConn(conn *clientConn) {
 	ctx := logutil.WithConnID(context.Background(), conn.connectionID)
+	// 握手，握手后客户端可以发生SQL查询给服务器
 	if err := conn.handshake(ctx); err != nil {
 		if plugin.IsEnable(plugin.Audit) && conn.ctx != nil {
 			conn.ctx.GetSessionVars().ConnectionInfo = conn.connectInfo()
@@ -526,10 +530,13 @@ func (s *Server) onConn(conn *clientConn) {
 	defer func() {
 		logutil.Logger(ctx).Debug("connection closed")
 	}()
+
+	// 加锁将该客户端连接放入连接列表
 	s.rwlock.Lock()
 	s.clients[conn.connectionID] = conn
 	connections := len(s.clients)
 	s.rwlock.Unlock()
+
 	metrics.ConnGauge.Set(float64(connections))
 
 	sessionVars := conn.ctx.GetSessionVars()
@@ -548,6 +555,8 @@ func (s *Server) onConn(conn *clientConn) {
 	}
 
 	connectedTime := time.Now()
+
+	// 开始读取客户端的查询和返回结果
 	conn.Run(ctx)
 
 	err = plugin.ForeachPlugin(plugin.Audit, func(p *plugin.Plugin) error {

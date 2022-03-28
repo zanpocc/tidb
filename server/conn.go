@@ -1049,6 +1049,7 @@ func (cc *clientConn) Run(ctx context.Context) {
 	// The client connection would detect the events when it fails to change status
 	// by CAS operation, it would then take some actions accordingly.
 	for {
+		// cas操作修改数据库连接状态
 		if !atomic.CompareAndSwapInt32(&cc.status, connStatusDispatching, connStatusReading) ||
 			// The judge below will not be hit by all means,
 			// But keep it stayed as a reminder and for the code reference for connStatusWaitShutdown.
@@ -1061,6 +1062,8 @@ func (cc *clientConn) Run(ctx context.Context) {
 		waitTimeout := cc.getSessionVarsWaitTimeout(ctx)
 		cc.pkt.setReadTimeout(time.Duration(waitTimeout) * time.Second)
 		start := time.Now()
+
+		// 读取数据包
 		data, err := cc.readPacket()
 		if err != nil {
 			if terror.ErrorNotEqual(err, io.EOF) {
@@ -1092,6 +1095,8 @@ func (cc *clientConn) Run(ctx context.Context) {
 		}
 
 		startTime := time.Now()
+
+		// 分发解析SQL
 		err = cc.dispatch(ctx, data)
 		cc.chunkAlloc.Reset()
 		if err != nil {
@@ -1250,6 +1255,7 @@ func (cc *clientConn) dispatch(ctx context.Context, data []byte) error {
 		connIdleDurationHistogramNotInTxn.Observe(t.Sub(cc.lastActive).Seconds())
 	}
 
+	// 分布式链路追踪
 	span := opentracing.StartSpan("server.dispatch")
 	cfg := config.GetGlobalConfig()
 	if cfg.OpenTracing.Enable {
@@ -1320,6 +1326,7 @@ func (cc *clientConn) dispatch(ctx context.Context, data []byte) error {
 		cc.ctx.SetProcessInfo("use "+dataStr, t, cmd, 0)
 	}
 
+	// 分发处理不同类型的SQL
 	switch cmd {
 	case mysql.ComSleep:
 		// TODO: According to mysql document, this command is supposed to be used only internally.
@@ -1796,6 +1803,8 @@ func (cc *clientConn) handleQuery(ctx context.Context, sql string) (err error) {
 	defer trace.StartRegion(ctx, "handleQuery").End()
 	sc := cc.ctx.GetSessionVars().StmtCtx
 	prevWarns := sc.GetWarnings()
+
+	// 解析语法树
 	stmts, err := cc.ctx.Parse(ctx, sql)
 	if err != nil {
 		return err
@@ -1809,6 +1818,8 @@ func (cc *clientConn) handleQuery(ctx context.Context, sql string) (err error) {
 	parserWarns := warns[len(prevWarns):]
 
 	var pointPlans []plannercore.Plan
+
+	// 多条SQL的处理
 	if len(stmts) > 1 {
 
 		// The client gets to choose if it allows multi-statements, and
@@ -1847,6 +1858,7 @@ func (cc *clientConn) handleQuery(ctx context.Context, sql string) (err error) {
 			// Save the point plan in Session, so we don't need to build the point plan again.
 			cc.ctx.SetValue(plannercore.PointPlanKey, plannercore.PointPlanVal{Plan: pointPlans[i]})
 		}
+		// 处理Stmt
 		retryable, err = cc.handleStmt(ctx, stmt, parserWarns, i == len(stmts)-1)
 		if err != nil {
 			if retryable && cc.ctx.GetSessionVars().IsRcCheckTsRetryable(err) {
@@ -1988,9 +2000,12 @@ func (cc *clientConn) handleStmt(ctx context.Context, stmt ast.StmtNode, warns [
 	ctx = context.WithValue(ctx, execdetails.StmtExecDetailKey, &execdetails.StmtExecDetails{})
 	ctx = context.WithValue(ctx, util.ExecDetailsKey, &util.ExecDetails{})
 	reg := trace.StartRegion(ctx, "ExecuteStmt")
+
 	cc.audit(plugin.Starting)
+	// 执行语句，得到结果，link：func (s *session) ExecuteStmt
 	rs, err := cc.ctx.ExecuteStmt(ctx, stmt)
 	reg.End()
+
 	// The session tracker detachment from global tracker is solved in the `rs.Close` in most cases.
 	// If the rs is nil, the detachment will be done in the `handleNoDelay`.
 	if rs != nil {
@@ -2011,6 +2026,8 @@ func (cc *clientConn) handleStmt(ctx context.Context, stmt ast.StmtNode, warns [
 		if connStatus := atomic.LoadInt32(&cc.status); connStatus == connStatusShutdown {
 			return false, executor.ErrQueryInterrupted
 		}
+
+		// 将执行结果写回客户端
 		if retryable, err := cc.writeResultset(ctx, rs, false, status, 0); err != nil {
 			return retryable, err
 		}

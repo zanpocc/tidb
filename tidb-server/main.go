@@ -162,6 +162,7 @@ var (
 	initializeInsecure = flagBoolean(nmInitializeInsecure, true, "bootstrap tidb-server in insecure mode")
 )
 
+// 入口
 func main() {
 	help := flag.Bool("help", false, "show the usage")
 	flag.Parse()

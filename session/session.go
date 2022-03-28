@@ -1869,6 +1869,8 @@ func (s *session) ExecuteStmt(ctx context.Context, stmtNode ast.StmtNode) (sqlex
 
 	// Transform abstract syntax tree to a physical plan(stored in executor.ExecStmt).
 	compiler := executor.Compiler{Ctx: s}
+
+	// 进行合法性校验，制定查询计划并优化
 	stmt, err := compiler.Compile(ctx, stmtNode)
 	if err != nil {
 		s.rollbackOnError(ctx)
