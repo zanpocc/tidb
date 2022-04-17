@@ -272,6 +272,8 @@ func newBaseExecutor(ctx sessionctx.Context, schema *expression.Schema, id int, 
 // Different from Volcano's execution model, a "Next" function call in TiDB will
 // return a batch of rows, other than a single row in Volcano.
 // NOTE: Executors must call "chk.Reset()" before appending their results to it.
+// 不同的SQL语句有自己的执行器
+// 例如：插入语句的执行器就是：
 type Executor interface {
 	base() *baseExecutor
 	Open(context.Context) error
@@ -298,6 +300,12 @@ func Next(ctx context.Context, e Executor, req *chunk.Chunk) error {
 	}
 	if trace.IsEnabled() {
 		defer trace.StartRegion(ctx, fmt.Sprintf("%T.Next", e)).End()
+	}
+
+	// 调用执行计划的Next方法，执行sql
+	// 插入：InsertExec
+	if _, ok := e.(*InsertExec); ok {
+		fmt.Println("break")
 	}
 	err := e.Next(ctx, req)
 

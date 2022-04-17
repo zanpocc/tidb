@@ -226,6 +226,7 @@ func (tc *TiDBContext) ExecuteStmt(ctx context.Context, stmt ast.StmtNode) (Resu
 	if s, ok := stmt.(*ast.NonTransactionalDeleteStmt); ok {
 		rs, err = session.HandleNonTransactionalDelete(ctx, s, tc.Session)
 	} else {
+		// 看这里，func (s *session) ExecuteStmt
 		rs, err = tc.Session.ExecuteStmt(ctx, stmt)
 	}
 	if err != nil {

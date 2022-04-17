@@ -2007,10 +2007,10 @@ func runStmt(ctx context.Context, se *session, s sqlexec.Statement) (rs sqlexec.
 	}
 
 	fmt.Println("执行SQL:", s.OriginText())
-	if s.OriginText() == "select * from t1" {
+	if s.OriginText() == "INSERT INTO t1 VALUES(1,\"1\")" {
 		fmt.Println("break")
 	}
-	// 开始执行物理的执行计划
+	// 开始执行物理的执行计划，这里只是提交到内存中
 	// func (a *ExecStmt) Exec(ctx context.Context) (_ sqlexec.RecordSet, err error)
 	rs, err = s.Exec(ctx)
 	se.updateTelemetryMetric(s.(*executor.ExecStmt))
@@ -2023,6 +2023,7 @@ func runStmt(ctx context.Context, se *session, s sqlexec.Statement) (rs sqlexec.
 		}, err
 	}
 
+	// 这里会真正的将数据提交到KV存储中
 	err = finishStmt(ctx, se, err, s)
 
 	if se.hasQuerySpecial() {

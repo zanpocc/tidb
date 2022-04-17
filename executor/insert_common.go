@@ -278,7 +278,7 @@ func insertRows(ctx context.Context, base insertCommon) (err error) {
 	if err != nil {
 		return err
 	}
-	err = base.exec(ctx, rows)
+	err = base.exec(ctx, rows) // 运行插入
 	if err != nil {
 		return err
 	}
@@ -1124,6 +1124,7 @@ func (e *InsertValues) batchCheckAndInsert(ctx context.Context, rows [][]types.D
 		// There may be duplicate keys inside the insert statement.
 		if !skip {
 			e.ctx.GetSessionVars().StmtCtx.AddCopiedRows(1)
+			// 插入数据
 			err = addRecord(ctx, rows[i])
 			if err != nil {
 				return err
@@ -1198,6 +1199,7 @@ func (e *InsertValues) addRecordWithAutoIDHint(ctx context.Context, row []types.
 		vars.PresumeKeyNotExists = true
 	}
 	if reserveAutoIDCount > 0 {
+		// 插入数据，func (t *TableCommon) AddRecord
 		_, err = e.Table.AddRecord(e.ctx, row, table.WithCtx(ctx), table.WithReserveAutoIDHint(reserveAutoIDCount))
 	} else {
 		_, err = e.Table.AddRecord(e.ctx, row, table.WithCtx(ctx))

@@ -2021,7 +2021,9 @@ func (cc *clientConn) handleStmt(ctx context.Context, stmt ast.StmtNode, warns [
 	reg := trace.StartRegion(ctx, "ExecuteStmt")
 
 	cc.audit(plugin.Starting)
-	// 执行语句，得到结果，link：func (s *session) ExecuteStmt
+
+	fmt.Println("解析完语法树，SQL:", stmt.OriginalText())
+	// 执行语句，得到结果
 	rs, err := cc.ctx.ExecuteStmt(ctx, stmt)
 	reg.End()
 

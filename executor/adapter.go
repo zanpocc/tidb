@@ -453,6 +453,9 @@ func (a *ExecStmt) Exec(ctx context.Context) (_ sqlexec.RecordSet, err error) {
 	}
 
 	// 主要看这里
+	if a.OriginText() == "INSERT INTO t1 VALUES(1,\"1\")" {
+		fmt.Println("handleNoDelay")
+	}
 	if handled, result, err := a.handleNoDelay(ctx, e, isPessimistic); handled {
 		return result, err
 	}
@@ -499,12 +502,16 @@ func (a *ExecStmt) handleNoDelay(ctx context.Context, e Executor, isPessimistic 
 	}
 
 	// If the executor doesn't return any result to the client, we execute it without delay.
+	// 如果执行器没有返回结果，比如插入、更新、删除等
+	if a.OriginText() == "INSERT INTO t1 VALUES(1,\"1\")" {
+		fmt.Println("handleNoDelayExecutor")
+	}
 	if toCheck.Schema().Len() == 0 {
 		handled = !isExplainAnalyze
 		if isPessimistic {
 			return handled, nil, a.handlePessimisticDML(ctx, toCheck)
 		}
-		r, err := a.handleNoDelayExecutor(ctx, toCheck)
+		r, err := a.handleNoDelayExecutor(ctx, toCheck) // 插入语句进入这里
 		return handled, r, err
 	} else if proj, ok := toCheck.(*ProjectionExec); ok && proj.calculateNoDelay {
 		// Currently this is only for the "DO" statement. Take "DO 1, @a=2;" as an example:
@@ -649,6 +656,11 @@ func (a *ExecStmt) handleNoDelayExecutor(ctx context.Context, e Executor) (sqlex
 		}
 	}
 
+	// 开始执行
+	fmt.Println(a.OriginText(), "执行Next")
+	if a.OriginText() == "INSERT INTO t1 VALUES(1,\"1\")" {
+		fmt.Println("break")
+	}
 	err = Next(ctx, e, newFirstChunk(e))
 	if err != nil {
 		return nil, err
