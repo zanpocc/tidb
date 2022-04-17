@@ -1048,8 +1048,10 @@ func (cc *clientConn) Run(ctx context.Context) {
 	// the status to special values, for example: kill or graceful shutdown.
 	// The client connection would detect the events when it fails to change status
 	// by CAS operation, it would then take some actions accordingly.
+
+	// 这里开始循环的读取处理每一条SQL，读取->解析处理->结果返回
 	for {
-		// cas操作修改数据库连接状态
+		// cas操作修改数据库连接状态，状态从分发中修改为读取中
 		if !atomic.CompareAndSwapInt32(&cc.status, connStatusDispatching, connStatusReading) ||
 			// The judge below will not be hit by all means,
 			// But keep it stayed as a reminder and for the code reference for connStatusWaitShutdown.
@@ -1063,7 +1065,7 @@ func (cc *clientConn) Run(ctx context.Context) {
 		cc.pkt.setReadTimeout(time.Duration(waitTimeout) * time.Second)
 		start := time.Now()
 
-		// 读取数据包
+		// 读取数据包，针对MySQL协议的定义，得到每个协议帧的数据
 		data, err := cc.readPacket()
 		if err != nil {
 			if terror.ErrorNotEqual(err, io.EOF) {
@@ -1090,13 +1092,14 @@ func (cc *clientConn) Run(ctx context.Context) {
 			return
 		}
 
+		// cas操作修改数据库连接状态，状态从读取中修改为分发中
 		if !atomic.CompareAndSwapInt32(&cc.status, connStatusReading, connStatusDispatching) {
 			return
 		}
 
 		startTime := time.Now()
 
-		// 分发解析SQL
+		// 分发解析SQL，对每一条SQL进行 验证->处理->返回结果
 		err = cc.dispatch(ctx, data)
 		cc.chunkAlloc.Reset()
 		if err != nil {
@@ -1255,7 +1258,6 @@ func (cc *clientConn) dispatch(ctx context.Context, data []byte) error {
 		connIdleDurationHistogramNotInTxn.Observe(t.Sub(cc.lastActive).Seconds())
 	}
 
-	// 分布式链路追踪
 	span := opentracing.StartSpan("server.dispatch")
 	cfg := config.GetGlobalConfig()
 	if cfg.OpenTracing.Enable {
@@ -1269,7 +1271,9 @@ func (cc *clientConn) dispatch(ctx context.Context, data []byte) error {
 	cc.mu.Unlock()
 
 	cc.lastPacket = data
+	// 每一个MySQL数据帧的第一个字节表示SQL的类型
 	cmd := data[0]
+	// 后序的字节表示SQL的具体内容
 	data = data[1:]
 	if topsqlstate.TopSQLEnabled() {
 		defer pprof.SetGoroutineLabels(ctx)
@@ -1326,6 +1330,7 @@ func (cc *clientConn) dispatch(ctx context.Context, data []byte) error {
 		cc.ctx.SetProcessInfo("use "+dataStr, t, cmd, 0)
 	}
 
+	fmt.Printf("%s,%d\n", dataStr, cmd)
 	// 分发处理不同类型的SQL
 	switch cmd {
 	case mysql.ComSleep:
@@ -1340,7 +1345,7 @@ func (cc *clientConn) dispatch(ctx context.Context, data []byte) error {
 			return err
 		}
 		return cc.writeOK(ctx)
-	case mysql.ComQuery: // Most frequently used command.
+	case mysql.ComQuery: // Most frequently used command
 		// For issue 1989
 		// Input payload may end with byte '\0', we didn't find related mysql document about it, but mysql
 		// implementation accept that case. So trim the last '\0' here as if the payload an EOF string.
@@ -1349,6 +1354,8 @@ func (cc *clientConn) dispatch(ctx context.Context, data []byte) error {
 			data = data[:len(data)-1]
 			dataStr = string(hack.String(data))
 		}
+		// 处理查询SQL，增删改查都是走这个case
+		// dataStr是SQL的字符串
 		return cc.handleQuery(ctx, dataStr)
 	case mysql.ComFieldList:
 		return cc.handleFieldList(ctx, dataStr)
@@ -1804,7 +1811,13 @@ func (cc *clientConn) handleQuery(ctx context.Context, sql string) (err error) {
 	sc := cc.ctx.GetSessionVars().StmtCtx
 	prevWarns := sc.GetWarnings()
 
-	// 解析语法树
+	//测试
+	// if sql == "select * from t1" {
+	// 	fmt.Println("mysql")
+	// }
+
+	// 解析SQL得到语法树
+	// 语法树的解析后面具体看下，流程和生成的语法树具体结构
 	stmts, err := cc.ctx.Parse(ctx, sql)
 	if err != nil {
 		return err
@@ -1859,6 +1872,12 @@ func (cc *clientConn) handleQuery(ctx context.Context, sql string) (err error) {
 			cc.ctx.SetValue(plannercore.PointPlanKey, plannercore.PointPlanVal{Plan: pointPlans[i]})
 		}
 		// 处理Stmt
+		//测试
+		// if sql == "select * from t1" {
+		// 	fmt.Println("mysql")
+		// }
+
+		// 主要看这里，传入解析后的语法树，开始执行SQL语句，返回执行结果
 		retryable, err = cc.handleStmt(ctx, stmt, parserWarns, i == len(stmts)-1)
 		if err != nil {
 			if retryable && cc.ctx.GetSessionVars().IsRcCheckTsRetryable(err) {

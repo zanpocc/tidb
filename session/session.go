@@ -1890,7 +1890,8 @@ func (s *session) ExecuteStmt(ctx context.Context, stmtNode ast.StmtNode) (sqlex
 	// Transform abstract syntax tree to a physical plan(stored in executor.ExecStmt).
 	compiler := executor.Compiler{Ctx: s}
 
-	// 进行合法性校验，制定查询计划并优化
+	// 1、进行合法性校验
+	// 2、制定查询计划并优化
 	stmt, err := compiler.Compile(ctx, stmtNode)
 	if err != nil {
 		s.rollbackOnError(ctx)
@@ -1913,6 +1914,8 @@ func (s *session) ExecuteStmt(ctx context.Context, stmtNode ast.StmtNode) (sqlex
 
 	// Execute the physical plan.
 	logStmt(stmt, s)
+
+	// 执行生成的执行计划
 	recordSet, err := runStmt(ctx, s, stmt)
 	if err != nil {
 		if !errIsNoisy(err) {
@@ -2036,6 +2039,14 @@ func runStmt(ctx context.Context, se *session, s sqlexec.Statement) (rs sqlexec.
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println("执行SQL:", s.OriginText())
+	if s.OriginText() == "select * from t1" {
+		fmt.Println("break")
+	}
+
+	// 开始执行物理的执行计划
+	// func (a *ExecStmt) Exec(ctx context.Context) (_ sqlexec.RecordSet, err error)
 	rs, err = s.Exec(ctx)
 	se.updateTelemetryMetric(s.(*executor.ExecStmt))
 	sessVars.TxnCtx.StatementCount++
@@ -2048,6 +2059,7 @@ func runStmt(ctx context.Context, se *session, s sqlexec.Statement) (rs sqlexec.
 	}
 
 	err = finishStmt(ctx, se, err, s)
+
 	if se.hasQuerySpecial() {
 		// The special query will be handled later in handleQuerySpecial,
 		// then should call the ExecStmt.FinishExecuteStmt to finish this statement.

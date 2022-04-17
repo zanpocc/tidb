@@ -503,6 +503,7 @@ func (s *Server) Close() {
 func (s *Server) onConn(conn *clientConn) {
 	ctx := logutil.WithConnID(context.Background(), conn.connectionID)
 	// 握手，握手后客户端可以发生SQL查询给服务器
+	// 这里涉及MySQL协议中的握手处理，如果对这块感兴趣，可以深入看看
 	if err := conn.handshake(ctx); err != nil {
 		if plugin.IsEnable(plugin.Audit) && conn.ctx != nil {
 			conn.ctx.GetSessionVars().ConnectionInfo = conn.connectInfo()

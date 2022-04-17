@@ -218,6 +218,7 @@ func main() {
 		close(exited)
 	})
 	topsql.SetupTopSQL()
+	// 启动服务
 	terror.MustNil(svr.Run())
 	<-exited
 	syncLog()
