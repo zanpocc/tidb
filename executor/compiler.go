@@ -49,6 +49,7 @@ type Compiler struct {
 }
 
 // Compile compiles an ast.StmtNode to a physical plan.
+// AST 转成 Plan 结构
 func (c *Compiler) Compile(ctx context.Context, stmtNode ast.StmtNode) (*ExecStmt, error) {
 	if span := opentracing.SpanFromContext(ctx); span != nil && span.Tracer() != nil {
 		span1 := span.Tracer().StartSpan("executor.Compile", opentracing.ChildOf(span.Context()))
@@ -73,9 +74,10 @@ func (c *Compiler) Compile(ctx context.Context, stmtNode ast.StmtNode) (*ExecStm
 		sessiontxn.AssertTxnManagerInfoSchema(c.Ctx, ret.InfoSchema)
 	})
 
+	// 补全schema
 	is := sessiontxn.GetTxnManager(c.Ctx).GetTxnInfoSchema()
 
-	// 优化并创建查询计划
+	// 优化并创建执行计划
 	finalPlan, names, err := planner.Optimize(ctx, c.Ctx, stmtNode, is)
 	if err != nil {
 		return nil, err

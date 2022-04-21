@@ -1816,7 +1816,7 @@ func (cc *clientConn) handleQuery(ctx context.Context, sql string) (err error) {
 	// 	fmt.Println("mysql")
 	// }
 
-	// 解析SQL得到语法树
+	// 解析SQL得到不同结构的语法树
 	// 语法树的解析后面具体看下，流程和生成的语法树具体结构
 	stmts, err := cc.ctx.Parse(ctx, sql)
 	if err != nil {

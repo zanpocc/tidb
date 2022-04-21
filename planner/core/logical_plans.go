@@ -759,12 +759,14 @@ func (la *LogicalAggregation) GetUsedCols() (usedCols []*expression.Column) {
 }
 
 // LogicalSelection represents a where or having predicate.
+// where或者having中的条件
 type LogicalSelection struct {
 	baseLogicalPlan
 
 	// Originally the WHERE or ON condition is parsed into a single expression,
 	// but after we converted to CNF(Conjunctive normal form), it can be
 	// split into a list of AND conditions.
+	// 一个表达式框架，只有表达式求值为true时，改行才符合条件
 	Conditions []expression.Expression
 }
 

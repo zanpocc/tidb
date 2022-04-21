@@ -681,7 +681,7 @@ func (b *PlanBuilder) Build(ctx context.Context, node ast.Node) (Plan, error) {
 		return b.buildExplainFor(x)
 	case *ast.TraceStmt:
 		return b.buildTrace(x)
-	case *ast.InsertStmt:
+	case *ast.InsertStmt: // 构建插入语句的执行计划
 		return b.buildInsert(ctx, x)
 	case *ast.LoadDataStmt:
 		return b.buildLoadData(ctx, x)
@@ -693,7 +693,7 @@ func (b *PlanBuilder) Build(ctx context.Context, node ast.Node) (Plan, error) {
 		return b.buildPlanReplayer(x), nil
 	case *ast.PrepareStmt:
 		return b.buildPrepare(x), nil
-	case *ast.SelectStmt:
+	case *ast.SelectStmt: // 构建查询语句的执行计划
 		if x.SelectIntoOpt != nil {
 			return b.buildSelectInto(ctx, x)
 		}
@@ -3350,6 +3350,8 @@ func (b *PlanBuilder) buildInsert(ctx context.Context, insert *ast.InsertStmt) (
 	if err != nil {
 		return nil, err
 	}
+
+	// 生成插入的执行计划，主要是将表名转换为kv存储库中的ID
 	tableInPlan, ok := b.is.TableByID(tableInfo.ID)
 	if !ok {
 		return nil, errors.Errorf("Can't get table %s", tableInfo.Name.O)

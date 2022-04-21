@@ -49,6 +49,8 @@ var (
 
 // task is a new version of `PhysicalPlanInfo`. It stores cost information for a task.
 // A task may be CopTask, RootTask, MPPTaskMeta or a ParallelTask.
+
+// RootTask表示在TIDB中进行计算的物理计划
 type task interface {
 	count() float64
 	addCost(cost float64)
@@ -61,6 +63,8 @@ type task interface {
 
 // copTask is a task that runs in a distributed kv store.
 // TODO: In future, we should split copTask to indexTask and tableTask.
+
+// 需要下推到存储引擎上进行计算的物理计划
 type copTask struct {
 	indexPlan PhysicalPlan
 	tablePlan PhysicalPlan

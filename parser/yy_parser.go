@@ -150,6 +150,7 @@ func (parser *Parser) ParseSQL(sql string, params ...ParseParam) (stmt []ast.Stm
 
 	var l yyLexer
 	l = &parser.lexer
+	// 解析
 	yyParse(l, parser)
 
 	warns, errs := l.Errors()
@@ -192,6 +193,7 @@ func (parser *Parser) ParseOneStmt(sql, charset, collation string) (ast.StmtNode
 }
 
 // SetSQLMode sets the SQL mode for parser.
+// 设置SQL解析的模式
 func (parser *Parser) SetSQLMode(mode mysql.SQLMode) {
 	parser.lexer.SetSQLMode(mode)
 }

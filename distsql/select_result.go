@@ -68,6 +68,7 @@ type SelectResult interface {
 	// NextRaw gets the next raw result.
 	NextRaw(context.Context) ([]byte, error)
 	// Next reads the data into chunk.
+	// Next读取数据到一个chunk里面，直到chunk的行数为0
 	Next(context.Context, *chunk.Chunk) error
 	// Close closes the iterator.
 	Close() error

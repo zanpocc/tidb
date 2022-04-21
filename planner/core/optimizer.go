@@ -71,9 +71,10 @@ const (
 	flagPrunColumnsAgain
 )
 
+// 逻辑执行计划优化规则
 var optRuleList = []logicalOptRule{
 	&gcSubstituter{},
-	&columnPruner{},
+	&columnPruner{}, // 列裁剪
 	&resultReorder{},
 	&buildKeySolver{},
 	&decorrelateSolver{},
@@ -271,6 +272,8 @@ func DoOptimize(ctx context.Context, sctx sessionctx.Context, flag uint64, logic
 	}
 	flag |= flagCollectPredicateColumnsPoint
 	flag |= flagSyncWaitStatsLoadPoint
+
+	// 逻辑优化
 	logic, err := logicalOptimize(ctx, flag, logic)
 	if err != nil {
 		return nil, 0, err
@@ -282,6 +285,8 @@ func DoOptimize(ctx context.Context, sctx sessionctx.Context, flag uint64, logic
 	if planCounter == 0 {
 		planCounter = -1
 	}
+
+	// 物理优化
 	physical, cost, err := physicalOptimize(logic, &planCounter)
 	if err != nil {
 		return nil, 0, err
@@ -448,6 +453,8 @@ func logicalOptimize(ctx context.Context, flag uint64, logic LogicalPlan) (Logic
 		}()
 	}
 	var err error
+
+	// 对逻辑的执行计划应用不同的优化规则
 	for i, rule := range optRuleList {
 		// The order of flags is same as the order of optRule in the list.
 		// We use a bitmask to record which opt rules should be used. If the i-th bit is 1, it means we should
@@ -496,6 +503,8 @@ func physicalOptimize(logic LogicalPlan, planCounter *PlanCounterTp) (plan Physi
 	}
 
 	logic.SCtx().GetSessionVars().StmtCtx.TaskMapBakTS = 0
+
+	// 生成逻辑计划的Task，PhysicalPlan 打包成为 Task
 	t, _, err := logic.findBestTask(prop, planCounter, opt)
 	if err != nil {
 		return nil, 0, err
@@ -508,6 +517,7 @@ func physicalOptimize(logic LogicalPlan, planCounter *PlanCounterTp) (plan Physi
 	}
 
 	err = t.plan().ResolveIndices()
+	// Task转为物理执行计划
 	return t.plan(), t.cost(), err
 }
 

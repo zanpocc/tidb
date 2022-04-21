@@ -1062,6 +1062,7 @@ type WithClause struct {
 
 // SelectStmt represents the select query node.
 // See https://dev.mysql.com/doc/refman/5.7/en/select.html
+// 查询语句的语法树
 type SelectStmt struct {
 	dmlNode
 
@@ -1070,13 +1071,13 @@ type SelectStmt struct {
 	// Distinct represents whether the select has distinct option.
 	Distinct bool
 	// From is the from clause of the query.
-	From *TableRefsClause
+	From *TableRefsClause // 表
 	// Where is the where clause in select statement.
-	Where ExprNode
+	Where ExprNode // 过滤条件
 	// Fields is the select expression list.
-	Fields *FieldList
+	Fields *FieldList // 查询的字段列表
 	// GroupBy is the group by expression list.
-	GroupBy *GroupByClause
+	GroupBy *GroupByClause // 分组
 	// Having is the having condition.
 	Having *HavingClause
 	// WindowSpecs is the window specification list.
@@ -1999,14 +2000,15 @@ func (n *CallStmt) Accept(v Visitor) (Node, bool) {
 
 // InsertStmt is a statement to insert new rows into an existing table.
 // See https://dev.mysql.com/doc/refman/5.7/en/insert.html
+// 向一个已存在的表中插入一行数据的语法树结构
 type InsertStmt struct {
 	dmlNode
 
 	IsReplace   bool
 	IgnoreErr   bool
-	Table       *TableRefsClause
-	Columns     []*ColumnName
-	Lists       [][]ExprNode
+	Table       *TableRefsClause // 表
+	Columns     []*ColumnName    // 列
+	Lists       [][]ExprNode     // 插入的数据
 	Setlist     []*Assignment
 	Priority    mysql.PriorityEnum
 	OnDuplicate []*Assignment

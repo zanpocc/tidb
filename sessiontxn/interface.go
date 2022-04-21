@@ -47,6 +47,7 @@ func (p *SimpleTxnContextProvider) GetTxnInfoSchema() infoschema.InfoSchema {
 // TxnManager is an interface providing txn context management in session
 type TxnManager interface {
 	// GetTxnInfoSchema returns the information schema used by txn
+	// 通过txn返回Schema信息
 	GetTxnInfoSchema() infoschema.InfoSchema
 
 	// GetContextProvider returns the current TxnContextProvider
@@ -56,4 +57,5 @@ type TxnManager interface {
 }
 
 // GetTxnManager returns the TxnManager object from session context
+// 从session上下文中返回事务管理器对象
 var GetTxnManager func(sctx sessionctx.Context) TxnManager

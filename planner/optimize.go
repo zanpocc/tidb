@@ -184,6 +184,7 @@ func Optimize(ctx context.Context, sctx sessionctx.Context, node ast.Node, is in
 			hint.BindHint(stmtNode, binding.Hint)
 			curStmtHints, _, curWarns := handleStmtHints(binding.Hint.GetFirstTableHints())
 			sessVars.StmtCtx.StmtHints = curStmtHints
+			// 创建执行计划
 			plan, curNames, cost, err := optimize(ctx, sctx, node, is)
 			if err != nil {
 				binding.Status = bindinfo.Invalid
@@ -328,6 +329,7 @@ func optimize(ctx context.Context, sctx sessionctx.Context, node ast.Node, is in
 	})
 
 	// build logical plan
+	// 构建逻辑执行计划
 	sctx.GetSessionVars().PlanID = 0
 	sctx.GetSessionVars().PlanColumnID = 0
 	sctx.GetSessionVars().MapHashCode2UniqueID4ExtendedCol = nil
@@ -346,6 +348,13 @@ func optimize(ctx context.Context, sctx sessionctx.Context, node ast.Node, is in
 	// reset fields about rewrite
 	sctx.GetSessionVars().RewritePhaseInfo.Reset()
 	beginRewrite := time.Now()
+
+	// 构建逻辑执行计划
+	if _, ok := node.(*ast.InsertStmt); ok {
+		fmt.Println("测试")
+	}
+
+	// 从一个AST结构转换为一个PLAN结构
 	p, err := builder.Build(ctx, node)
 	if err != nil {
 		return nil, nil, 0, err
@@ -378,7 +387,7 @@ func optimize(ctx context.Context, sctx sessionctx.Context, node ast.Node, is in
 
 	// Handle the non-logical plan statement.
 	logic, isLogicalPlan := p.(plannercore.LogicalPlan)
-	if !isLogicalPlan {
+	if !isLogicalPlan { // 只有查询语句，可以优化的才会进入后面；insert直接返回
 		return p, names, 0, nil
 	}
 
@@ -389,6 +398,7 @@ func optimize(ctx context.Context, sctx sessionctx.Context, node ast.Node, is in
 	}
 
 	beginOpt := time.Now()
+	// 将逻辑执行计划转化成物理执行计划，简单的语句不会到这里，例如insert或者show等
 	finalPlan, cost, err := plannercore.DoOptimize(ctx, sctx, builder.GetOptFlag(), logic)
 	sctx.GetSessionVars().DurationOptimization = time.Since(beginOpt)
 	return finalPlan, names, cost, err
