@@ -31,6 +31,8 @@ import (
 type columnPruner struct {
 }
 
+// 列裁剪优化，某个节点所需要的列等于本层需要的列加上父节点所需要的列
+
 func (s *columnPruner) optimize(ctx context.Context, lp LogicalPlan, opt *logicalOptimizeOp) (LogicalPlan, error) {
 	err := lp.PruneColumns(lp.Schema().Columns, opt)
 	return lp, err

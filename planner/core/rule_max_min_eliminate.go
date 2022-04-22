@@ -36,6 +36,8 @@ import (
 type maxMinEliminator struct {
 }
 
+// 将求最大最小值的操作修改为order by字段然后limit 1的操作
+
 func (a *maxMinEliminator) optimize(ctx context.Context, p LogicalPlan, opt *logicalOptimizeOp) (LogicalPlan, error) {
 	return a.eliminateMaxMin(p, opt), nil
 }

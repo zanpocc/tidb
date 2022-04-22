@@ -79,14 +79,14 @@ var optRuleList = []logicalOptRule{
 	&buildKeySolver{},
 	&decorrelateSolver{},
 	&aggregationEliminator{},
-	&projectionEliminator{},
-	&maxMinEliminator{},
+	&projectionEliminator{}, //投影（需要查询的列）消除
+	&maxMinEliminator{},     // 最大最小消除
 	&ppdSolver{},
 	&outerJoinEliminator{},
 	&partitionProcessor{},
 	&collectPredicateColumnsPoint{},
 	&aggregationPushDownSolver{},
-	&pushDownTopNOptimizer{},
+	&pushDownTopNOptimizer{}, // 谓词下推
 	&syncWaitStatsLoadPoint{},
 	&joinReOrderSolver{},
 	&columnPruner{}, // column pruning again at last, note it will mess up the results of buildKeySolver
@@ -505,6 +505,7 @@ func physicalOptimize(logic LogicalPlan, planCounter *PlanCounterTp) (plan Physi
 	logic.SCtx().GetSessionVars().StmtCtx.TaskMapBakTS = 0
 
 	// 生成逻辑计划的Task，PhysicalPlan 打包成为 Task
+	// 代价评估，基于代价的优化选取最好的方式
 	t, _, err := logic.findBestTask(prop, planCounter, opt)
 	if err != nil {
 		return nil, 0, err

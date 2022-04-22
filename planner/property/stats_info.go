@@ -33,11 +33,13 @@ func ToString(ndvs []GroupNDV) string {
 }
 
 // StatsInfo stores the basic information of statistics for the plan's output. It is used for cost estimation.
+// 统计信息
 type StatsInfo struct {
-	RowCount float64
+	RowCount float64 // 表的数据行数
 
 	// Column.UniqueID -> NDV
-	ColNDVs map[int64]float64
+	// the number of distinct value
+	ColNDVs map[int64]float64 // 每一列上不相同的数据的个数
 
 	HistColl *statistics.HistColl
 	// StatsVersion indicates the statistics version of a table.

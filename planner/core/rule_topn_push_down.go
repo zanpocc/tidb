@@ -28,6 +28,10 @@ import (
 type pushDownTopNOptimizer struct {
 }
 
+// 谓词下推，关联查询时减少两表的笛卡尔积
+// 将过滤条件下推到叶子节点计算，比如最下层的存储引擎层面
+
+// 单表的条件可以下推，而两表的条件只能是通过server层的selection算子进行运算
 func (s *pushDownTopNOptimizer) optimize(ctx context.Context, p LogicalPlan, opt *logicalOptimizeOp) (LogicalPlan, error) {
 	return p.pushDownTopN(nil, opt), nil
 }
